@@ -1,17 +1,20 @@
+
 import React, { useEffect, useRef } from 'react';
 import { Job } from '../types';
 import { CheckIcon } from './icons/CheckIcon';
 import { CloseIcon } from './icons/CloseIcon';
 import { BookmarkIcon } from './icons/BookmarkIcon';
+import { VerifiedIcon } from './icons/VerifiedIcon';
 
 interface JobDetailModalProps {
   job: Job | null;
   onClose: () => void;
   isSaved: boolean;
   onSaveToggle: (jobId: number) => void;
+  onViewCompanyProfile: (companyName: string) => void;
 }
 
-export const JobDetailModal: React.FC<JobDetailModalProps> = ({ job, onClose, isSaved, onSaveToggle }) => {
+export const JobDetailModal: React.FC<JobDetailModalProps> = ({ job, onClose, isSaved, onSaveToggle, onViewCompanyProfile }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -56,7 +59,21 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({ job, onClose, is
         </button>
 
         <h2 id="job-title" className="text-3xl font-bold text-primary mb-2">{job.title}</h2>
-        <p className="text-lg text-text-main font-semibold">{job.company}</p>
+        <div className="flex items-center gap-2 mb-2 flex-wrap">
+          <button 
+            onClick={() => onViewCompanyProfile(job.company)}
+            className="text-lg text-text-main font-semibold hover:underline focus:outline-none focus:ring-2 focus:ring-primary rounded"
+            aria-label={`Ver perfil da empresa ${job.company}`}
+          >
+            {job.company}
+          </button>
+          {job.verified && (
+            <div className="flex items-center gap-1.5 bg-blue-100 text-primary font-bold px-2.5 py-1 rounded-full text-xs" title="Esta empresa teve suas práticas de inclusão e acessibilidade verificadas pela equipe JobsPCD.">
+                <VerifiedIcon className="w-4 h-4" />
+                <span>Empresa Verificada</span>
+            </div>
+          )}
+        </div>
         <p className="text-md text-gray-600 mb-6">{job.location} | {job.modality} | {job.jobType}</p>
         
         {job.salary && (

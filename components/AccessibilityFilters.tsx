@@ -15,18 +15,21 @@ const FilterCheckbox: React.FC<{
   checked: boolean;
   onChange: (checked: boolean) => void;
 }> = ({ id, label, checked, onChange }) => (
-    <div className="flex items-center">
+    <label
+      htmlFor={id}
+      className="flex items-center p-1 rounded-md hover:bg-primary/10 transition-colors duration-200 cursor-pointer select-none"
+    >
       <input
         type="checkbox"
         id={id}
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
-        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+        className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary transition-colors duration-200"
       />
-      <label htmlFor={id} className="ml-2 text-sm text-text-main">
+      <span className="ml-2 text-sm text-text-main">
         {label}
-      </label>
-    </div>
+      </span>
+    </label>
 );
 
 
@@ -45,6 +48,18 @@ export const AccessibilityFilters: React.FC<AccessibilityFiltersProps> = ({ filt
       <h2 className="text-xl font-bold text-text-main mb-4">Filtros</h2>
       
       <div className="space-y-6">
+        <div>
+          <h3 className="font-semibold mb-2">Confiança e Segurança</h3>
+          <div className="space-y-2">
+            <FilterCheckbox 
+                id="verified-only"
+                label="Apenas Empresas Verificadas"
+                checked={filters.verifiedOnly}
+                onChange={(checked) => onFilterChange('verifiedOnly', checked)}
+            />
+          </div>
+        </div>
+
         <div>
           <h3 className="font-semibold mb-2">Modalidade</h3>
           <div className="space-y-2">

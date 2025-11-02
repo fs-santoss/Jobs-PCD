@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Header } from './components/Header';
 import { AccessibilityFilters } from './components/AccessibilityFilters';
@@ -5,10 +6,11 @@ import { JobCard } from './components/JobCard';
 import { JobDetailModal } from './components/JobDetailModal';
 import { SavedJobsModal } from './components/SavedJobsModal';
 import { Chatbot } from './components/Chatbot';
+import { CompanyProfileModal } from './components/CompanyProfileModal';
 import { SearchIcon } from './components/icons/SearchIcon';
 import { BookmarkIcon } from './components/icons/BookmarkIcon';
-import { MOCK_JOBS } from './constants';
-import { Job, Filters } from './types';
+import { MOCK_JOBS, MOCK_COMPANIES } from './constants';
+import { Job, Filters, Company } from './types';
 
 function App() {
   const [filters, setFilters] = useState<Filters>({
@@ -18,9 +20,11 @@ function App() {
     jobTypes: [],
     fullPhysicalAccess: false,
     adaptations: [],
+    verifiedOnly: false,
   });
   
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [savedJobIds, setSavedJobIds] = useState<Set<number>>(() => {
     try {
       const item = window.localStorage.getItem('savedJobIds');
@@ -31,6 +35,7 @@ function App() {
     }
   });
   const [isSavedJobsModalOpen, setIsSavedJobsModalOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   useEffect(() => {
     try {
@@ -57,19 +62,57 @@ function App() {
     setFilters(prev => ({ ...prev, [key]: value }));
   }, []);
 
-  const filteredJobs = useMemo(() => {
-    return MOCK_JOBS.filter(job => {
-      const searchTermMatch = job.title.toLowerCase().includes(filters.searchTerm.toLowerCase()) || 
-                              job.company.toLowerCase().includes(filters.searchTerm.toLowerCase());
-      const locationMatch = job.location.toLowerCase().includes(filters.location.toLowerCase());
-      const modalityMatch = filters.modalities.length === 0 || filters.modalities.includes(job.modality);
-      const jobTypeMatch = filters.jobTypes.length === 0 || filters.jobTypes.includes(job.jobType);
-      const physicalAccessMatch = !filters.fullPhysicalAccess || job.fullPhysicalAccess;
-      const adaptationsMatch = filters.adaptations.every(a => job.adaptations.includes(a));
+  const handleViewCompanyProfile = useCallback((companyName: string) => {
+    const company = MOCK_COMPANIES.find(c => c.name === companyName);
+    if (company) {
+      setSelectedJob(null); // Close job detail modal if open
+      setIsSavedJobsModalOpen(false); // Close saved jobs modal if open
+      setSelectedCompany(company);
+    }
+  }, []);
 
-      return searchTermMatch && locationMatch && modalityMatch && jobTypeMatch && physicalAccessMatch && adaptationsMatch;
+  const filteredJobs = useMemo(() => {
+    const lowerSearchTerm = filters.searchTerm.trim().toLowerCase();
+    const lowerLocation = filters.location.trim().toLowerCase();
+    
+    const modalitySet = new Set(filters.modalities);
+    const jobTypeSet = new Set(filters.jobTypes);
+
+    if (
+      !lowerSearchTerm &&
+      !lowerLocation &&
+      modalitySet.size === 0 &&
+      jobTypeSet.size === 0 &&
+      !filters.fullPhysicalAccess &&
+      filters.adaptations.length === 0 &&
+      !filters.verifiedOnly
+    ) {
+      return MOCK_JOBS;
+    }
+
+    return MOCK_JOBS.filter(job => {
+      if (filters.verifiedOnly && !job.verified) return false;
+      if (filters.fullPhysicalAccess && !job.fullPhysicalAccess) return false;
+      if (modalitySet.size > 0 && !modalitySet.has(job.modality)) return false;
+      if (jobTypeSet.size > 0 && !jobTypeSet.has(job.jobType)) return false;
+      if (lowerLocation && !job.location.toLowerCase().includes(lowerLocation)) return false;
+      if (lowerSearchTerm && 
+          !job.title.toLowerCase().includes(lowerSearchTerm) && 
+          !job.company.toLowerCase().includes(lowerSearchTerm)) {
+        return false;
+      }
+      if (filters.adaptations.length > 0) {
+        if (!filters.adaptations.every(a => job.adaptations.includes(a))) return false;
+      }
+      return true;
     });
   }, [filters]);
+
+  useEffect(() => {
+    setIsUpdating(true);
+    const timer = setTimeout(() => setIsUpdating(false), 300);
+    return () => clearTimeout(timer);
+  }, [filteredJobs]);
   
   const savedJobs = useMemo(() => MOCK_JOBS.filter(job => savedJobIds.has(job.id)), [savedJobIds]);
 
@@ -86,8 +129,18 @@ function App() {
                 Conectamos talentos com deficiência a empresas que valorizam a inclusão e a diversidade.
             </p>
         </div>
+        
+        <section id="companies" className="bg-background-secondary p-8 rounded-lg shadow-md mb-12 text-center scroll-mt-24">
+          <h2 className="text-3xl font-bold text-text-main mb-4">Sua Empresa é Inclusiva?</h2>
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto mb-6">
+            Destaque seu compromisso com a diversidade. Crie um perfil para sua empresa, divulgue suas vagas afirmativas e conecte-se com os melhores talentos PCD do mercado.
+          </p>
+          <button className="bg-primary text-text-interactive font-bold py-3 px-8 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-opacity text-lg">
+            Criar Perfil de Empresa
+          </button>
+        </section>
 
-        <div className="bg-background-secondary p-6 rounded-lg shadow-md mb-8">
+        <div id="jobs" className="bg-background-secondary p-6 rounded-lg shadow-md mb-8 scroll-mt-24">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                     <label htmlFor="search-term" className="block text-sm font-medium text-text-main mb-1">Cargo ou Empresa</label>
@@ -126,7 +179,7 @@ function App() {
                 onFilterChange={handleFilterChange}
                 jobCount={filteredJobs.length}
             />
-            <div className="w-full lg:w-3/4 xl:w-4/5">
+            <div className={`w-full lg:w-3/4 xl:w-4/5 transition-opacity duration-300 ${isUpdating ? 'opacity-50' : 'opacity-100'}`}>
               {filteredJobs.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {filteredJobs.map(job => (
@@ -136,6 +189,7 @@ function App() {
                       onViewDetails={setSelectedJob}
                       isSaved={savedJobIds.has(job.id)}
                       onSaveToggle={handleSaveJobToggle}
+                      onViewCompanyProfile={handleViewCompanyProfile}
                     />
                   ))}
                 </div>
@@ -153,6 +207,16 @@ function App() {
         onClose={() => setSelectedJob(null)}
         isSaved={selectedJob ? savedJobIds.has(selectedJob.id) : false}
         onSaveToggle={handleSaveJobToggle}
+        onViewCompanyProfile={handleViewCompanyProfile}
+      />
+      <CompanyProfileModal 
+        company={selectedCompany}
+        jobs={MOCK_JOBS.filter(job => job.company === selectedCompany?.name)}
+        onClose={() => setSelectedCompany(null)}
+        onViewJobDetails={(job) => {
+            setSelectedCompany(null);
+            setSelectedJob(job);
+        }}
       />
       <Chatbot jobs={MOCK_JOBS} onViewDetails={setSelectedJob} />
       
