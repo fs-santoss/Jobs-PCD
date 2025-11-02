@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Job, ChatMessage } from '../types';
 import { getChatbotResponse } from '../services/geminiService';
@@ -45,7 +44,7 @@ export const Chatbot: React.FC<ChatbotProps> = ({ jobs, onViewDetails }) => {
   };
 
   return (
-    <div className="fixed bottom-5 right-5 w-full max-w-md z-40">
+    <div className="fixed bottom-24 right-5 w-full max-w-md z-40">
       <div className="bg-white rounded-lg shadow-2xl flex flex-col h-[60vh]">
         <header className="bg-primary text-white p-4 rounded-t-lg flex items-center">
           <SparklesIcon className="w-6 h-6 mr-2" />

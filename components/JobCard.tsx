@@ -1,18 +1,34 @@
-
 import React from 'react';
 import { Job } from '../types';
 import { CheckIcon } from './icons/CheckIcon';
+import { BookmarkIcon } from './icons/BookmarkIcon';
 
 interface JobCardProps {
   job: Job;
   onViewDetails: (job: Job) => void;
+  isSaved: boolean;
+  onSaveToggle: (jobId: number) => void;
 }
 
-export const JobCard: React.FC<JobCardProps> = ({ job, onViewDetails }) => {
+export const JobCard: React.FC<JobCardProps> = ({ job, onViewDetails, isSaved, onSaveToggle }) => {
+  
+  const handleSaveClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    onSaveToggle(job.id);
+  };
+
   return (
-    <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 flex flex-col h-full">
+    <div className="bg-white border border-gray-200 p-6 rounded-lg shadow-sm hover:shadow-lg transition-shadow duration-300 flex flex-col h-full relative">
+      <button 
+        onClick={handleSaveClick} 
+        className="absolute top-4 right-4 text-gray-400 hover:text-primary focus:outline-none focus:ring-2 focus:ring-primary rounded-full p-1"
+        aria-label={isSaved ? 'Remover vaga salva' : 'Salvar vaga'}
+      >
+        <BookmarkIcon className="w-6 h-6" fill={isSaved ? 'currentColor' : 'none'} />
+      </button>
+
       <div className="flex-grow">
-        <h3 className="text-xl font-bold text-primary">{job.title}</h3>
+        <h3 className="text-xl font-bold text-primary pr-8">{job.title}</h3>
         <p className="text-md text-text-main font-semibold mt-1">{job.company}</p>
         <p className="text-sm text-gray-600 mt-1">{job.location} - {job.modality}</p>
         

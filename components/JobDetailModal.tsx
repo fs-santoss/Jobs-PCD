@@ -1,15 +1,17 @@
-
 import React, { useEffect, useRef } from 'react';
 import { Job } from '../types';
 import { CheckIcon } from './icons/CheckIcon';
 import { CloseIcon } from './icons/CloseIcon';
+import { BookmarkIcon } from './icons/BookmarkIcon';
 
 interface JobDetailModalProps {
   job: Job | null;
   onClose: () => void;
+  isSaved: boolean;
+  onSaveToggle: (jobId: number) => void;
 }
 
-export const JobDetailModal: React.FC<JobDetailModalProps> = ({ job, onClose }) => {
+export const JobDetailModal: React.FC<JobDetailModalProps> = ({ job, onClose, isSaved, onSaveToggle }) => {
   const modalRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -86,7 +88,16 @@ export const JobDetailModal: React.FC<JobDetailModalProps> = ({ job, onClose }) 
             </ul>
         </div>
         
-        <div className="mt-8 text-center">
+        <div className="mt-8 flex items-center justify-center gap-4">
+            <button
+              onClick={() => onSaveToggle(job.id)}
+              className={`flex items-center justify-center gap-2 font-bold py-3 px-6 rounded-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-colors text-lg ${
+                isSaved ? 'bg-background text-primary border-2 border-primary' : 'bg-transparent text-primary border-2 border-primary hover:bg-primary hover:text-white'
+              }`}
+            >
+              <BookmarkIcon className="w-6 h-6" fill={isSaved ? 'currentColor' : 'none'} />
+              {isSaved ? 'Vaga Salva' : 'Salvar Vaga'}
+            </button>
             <button className="bg-primary text-text-interactive font-bold py-3 px-8 rounded-lg hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-opacity text-lg">
                 Candidatar-se
             </button>

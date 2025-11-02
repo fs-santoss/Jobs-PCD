@@ -1,11 +1,12 @@
-
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Header } from './components/Header';
 import { AccessibilityFilters } from './components/AccessibilityFilters';
 import { JobCard } from './components/JobCard';
 import { JobDetailModal } from './components/JobDetailModal';
+import { SavedJobsModal } from './components/SavedJobsModal';
 import { Chatbot } from './components/Chatbot';
 import { SearchIcon } from './components/icons/SearchIcon';
+import { BookmarkIcon } from './components/icons/BookmarkIcon';
 import { MOCK_JOBS } from './constants';
 import { Job, Filters } from './types';
 
@@ -20,6 +21,37 @@ function App() {
   });
   
   const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+  const [savedJobIds, setSavedJobIds] = useState<Set<number>>(() => {
+    try {
+      const item = window.localStorage.getItem('savedJobIds');
+      return item ? new Set(JSON.parse(item)) : new Set();
+    } catch (error) {
+      console.error("Error reading from localStorage", error);
+      return new Set();
+    }
+  });
+  const [isSavedJobsModalOpen, setIsSavedJobsModalOpen] = useState(false);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('savedJobIds', JSON.stringify(Array.from(savedJobIds)));
+    } catch (error) {
+      console.error("Error writing to localStorage", error);
+    }
+  }, [savedJobIds]);
+
+  const handleSaveJobToggle = useCallback((jobId: number) => {
+    setSavedJobIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(jobId)) {
+        newSet.delete(jobId);
+      } else {
+        newSet.add(jobId);
+      }
+      return newSet;
+    });
+  }, []);
+
 
   const handleFilterChange = useCallback(<K extends keyof Filters>(key: K, value: Filters[K]) => {
     setFilters(prev => ({ ...prev, [key]: value }));
@@ -38,6 +70,8 @@ function App() {
       return searchTermMatch && locationMatch && modalityMatch && jobTypeMatch && physicalAccessMatch && adaptationsMatch;
     });
   }, [filters]);
+  
+  const savedJobs = useMemo(() => MOCK_JOBS.filter(job => savedJobIds.has(job.id)), [savedJobIds]);
 
   return (
     <div className="min-h-screen bg-background font-sans">
@@ -96,7 +130,13 @@ function App() {
               {filteredJobs.length > 0 ? (
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                   {filteredJobs.map(job => (
-                    <JobCard key={job.id} job={job} onViewDetails={setSelectedJob} />
+                    <JobCard 
+                      key={job.id} 
+                      job={job} 
+                      onViewDetails={setSelectedJob}
+                      isSaved={savedJobIds.has(job.id)}
+                      onSaveToggle={handleSaveJobToggle}
+                    />
                   ))}
                 </div>
               ) : (
@@ -108,8 +148,37 @@ function App() {
             </div>
         </div>
       </main>
-      <JobDetailModal job={selectedJob} onClose={() => setSelectedJob(null)} />
+      <JobDetailModal 
+        job={selectedJob} 
+        onClose={() => setSelectedJob(null)}
+        isSaved={selectedJob ? savedJobIds.has(selectedJob.id) : false}
+        onSaveToggle={handleSaveJobToggle}
+      />
       <Chatbot jobs={MOCK_JOBS} onViewDetails={setSelectedJob} />
+      
+      {savedJobIds.size > 0 && (
+        <button 
+          onClick={() => setIsSavedJobsModalOpen(true)}
+          className="fixed bottom-5 right-24 w-16 h-16 bg-primary text-white rounded-full shadow-lg hover:bg-opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary z-40 flex items-center justify-center"
+          aria-label={`Ver ${savedJobIds.size} vagas salvas`}
+        >
+          <BookmarkIcon className="w-8 h-8" />
+          <span className="absolute -top-1 -right-1 bg-error text-white text-xs font-bold rounded-full h-6 w-6 flex items-center justify-center">
+            {savedJobIds.size}
+          </span>
+        </button>
+      )}
+
+      <SavedJobsModal 
+        isOpen={isSavedJobsModalOpen}
+        onClose={() => setIsSavedJobsModalOpen(false)}
+        savedJobs={savedJobs}
+        onViewDetails={(job) => {
+          setIsSavedJobsModalOpen(false);
+          setSelectedJob(job);
+        }}
+        onUnsave={handleSaveJobToggle}
+      />
     </div>
   );
 }
